@@ -1,0 +1,66 @@
+# =============================================================================
+# live/lab/vsphere/default/cluster/cluster.yaml.example — default (海外直连) 集群定义
+# 用法: 复制到 terraform/vsphere/cluster.yaml, 修改 cluster/network 为实际值后
+#       cd terraform/vsphere && python generate.py
+# 差异 (相对 cn): 官方上游源, 不启用 Harbor
+# =============================================================================
+
+cluster:
+  name: lab-k8s01
+  environment: lab
+  location: hq
+  id: k8s01
+masters:
+  count: 3
+  cpu: 4
+  memory: 6144
+  disk: 100
+  data_disk: 50
+  ips: []
+workers:
+  count: 3
+  cpu: 16
+  memory: 16384
+  disk: 200
+  data_disk: 50
+  ips: []
+network:
+  interface: ens192
+  cidr: 172.16.222.0/24
+  gateway: 172.16.222.254
+  dns:
+  - 172.16.222.210
+  - 223.5.5.5
+  ip_start: 172.16.222.201
+  date: auto
+kubernetes:
+  version: '1.36'
+  apt_repo: https://pkgs.k8s.io/core:/stable:/v{version}/deb/
+  pause_registry: registry.k8s.io
+  cni_plugin: cilium
+  pod_cidr: 10.244.0.0/16
+  service_cidr: 10.96.0.0/12
+os:
+  user: appuser
+  group: appowner
+  timezone: Asia/Shanghai
+  apt_mirror: ''
+  apt_suite: noble
+  ntp: []
+ssh:
+  public_key_file: ''
+  enable_password_auth: false
+  vm_password: ''
+tools:
+  helm:
+    enabled: true
+    url: https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
+  nerdctl:
+    enabled: true
+    url: https://github.com/containerd/nerdctl/releases/download/v2.0.4/nerdctl-2.0.4-linux-amd64.tar.gz
+  bash_completion: true
+harbor:
+  enabled: false
+  host: ''
+  ip: ''
+  upstreams: {}

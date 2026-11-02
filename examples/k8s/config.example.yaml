@@ -1,0 +1,72 @@
+# =============================================================================
+# terraform/vsphere/cluster.yaml 完整样例 (逐字段注释)
+# 复制到 terraform/vsphere/cluster.yaml 后修改
+# =============================================================================
+
+cluster:
+  name: lab-k8s01          # 集群名
+  environment: lab         # 主机名第一段: <env>-<loc>-<id>-<role>-<NN>
+  location: hq             # 主机名第二段
+  id: k8s01                # 主机名第三段 / vSphere 显示名前缀
+
+masters:                   # worker 段同构
+  count: 3                 # 控制平面数量 (etcd 建议奇数 1/3/5)
+  cpu: 4
+  memory: 6144             # MB
+  disk: 100                # 系统盘 GB
+  data_disk: 50            # 附加数据盘 GB (Longhorn); 0 = 不要
+  ips: []                  # 显式 IP 列表 (数量=count) 或留空自动分配
+
+workers:
+  count: 3
+  cpu: 16
+  memory: 16384
+  disk: 200
+  data_disk: 50
+  ips: []
+
+network:
+  interface: ens192        # VM 网卡名 (VMware vmxnet3 默认)
+  cidr: 172.16.222.0/24
+  gateway: 172.16.222.254
+  dns:                     # cn 方案中首选 OpenWrt
+    - 172.16.222.210
+    - 223.5.5.5
+  ip_start: 172.16.222.201 # 自动分配起始 IP
+  date: auto               # vSphere 显示名日期段; 固定值避免重复生成时改名 (VM 重建)
+
+kubernetes:
+  version: "1.36"          # 1.33-1.37 (pause/crictl 联动, 见 generate.py K8S_CATALOG)
+  apt_repo: "https://pkgs.k8s.io/core:/stable:/v{version}/deb/"   # cn 换 aliyun
+  pause_registry: "registry.k8s.io"                               # cn 换 aliyun google_containers
+  cni_plugin: cilium
+  pod_cidr: 10.244.0.0/16
+  service_cidr: 10.96.0.0/12
+
+os:
+  user: appuser            # VM 运维用户 (sudo 免密)
+  group: appowner
+  timezone: Asia/Shanghai
+  apt_mirror: ""           # cn: https://mirrors.aliyun.com/ubuntu/
+  apt_suite: noble
+  ntp: []
+
+ssh:
+  public_key_file: ""      # 空 = 探测 ~/.ssh/id_ed25519.pub
+  enable_password_auth: false
+  vm_password: ""
+
+tools:
+  helm:
+    enabled: true
+    url: "https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz"   # cn 换 mirror.azure.cn
+  nerdctl:
+    enabled: true
+    url: "https://github.com/containerd/nerdctl/releases/download/v2.0.4/nerdctl-2.0.4-linux-amd64.tar.gz"
+  bash_completion: true
+
+harbor:                    # cn 环境启用
+  enabled: false
+  host: ""                 # 如 harbor.example.local (需 DNS/hosts 可解析)
+  ip: ""
+  upstreams: {}            # 如 docker.io: dockerhub (项目名须与 Harbor 一致)

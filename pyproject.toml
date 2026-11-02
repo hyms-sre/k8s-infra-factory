@@ -1,0 +1,16 @@
+# =============================================================================
+# pyproject.toml — Python 依赖声明
+#
+# Python 在本项目中只有一个职责: Kubernetes Node Generator
+# (terraform/vsphere/generate.py: cluster.yaml → vm.tf)。
+# 不打包、不发布, 仅声明运行依赖与版本要求。
+# =============================================================================
+
+[project]
+name = "iac-k8s-esxi"
+version = "0.3.0"
+description = "vSphere Kubernetes IaC / Environment Generator (Terraform + Cloud-Init + kubeadm)"
+requires-python = ">=3.9"
+dependencies = [
+    "PyYAML>=6.0",
+]

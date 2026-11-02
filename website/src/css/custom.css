@@ -1,0 +1,334 @@
+/* =============================================================================
+   custom.css — 站点主题 (主色: Kubernetes 蓝; 明亮为主, 支持暗色)
+   ============================================================================= */
+
+:root {
+  --ifm-color-primary: #326ce5;
+  --ifm-color-primary-dark: #2b61cf;
+  --ifm-color-primary-darker: #285bc3;
+  --ifm-color-primary-darkest: #214ba1;
+  --ifm-color-primary-light: #4a7de9;
+  --ifm-color-primary-lighter: #5b8aeb;
+  --ifm-color-primary-lightest: #7fa1f0;
+  --ifm-code-font-size: 92%;
+  --docusaurus-highlighted-code-line-bg: rgba(50, 108, 229, 0.12);
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #6d95ee;
+  --ifm-color-primary-dark: #4d7de9;
+  --ifm-color-primary-darker: #3c70e6;
+  --ifm-color-primary-darkest: #2150b8;
+  --ifm-color-primary-light: #8dadf2;
+  --ifm-color-primary-lighter: #9fbaf4;
+  --ifm-color-primary-lightest: #c6d5f8;
+  --docusaurus-highlighted-code-line-bg: rgba(109, 149, 238, 0.25);
+}
+
+/* ---------------------------------------------------------------- 落地页 */
+.home-hero {
+  padding: 4rem 1.5rem 3rem;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(50, 108, 229, 0.08), transparent);
+}
+
+.home-hero h1 {
+  font-size: 2.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.home-hero p {
+  font-size: 1.15rem;
+  color: var(--ifm-color-emphasis-700);
+  max-width: 46rem;
+  margin: 0 auto 2rem;
+}
+
+[data-theme='dark'] .home-hero p {
+  color: var(--ifm-color-emphasis-500);
+}
+
+.home-hero__buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.home-main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+
+.home-section {
+  margin-top: 3rem;
+}
+
+.home-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.category-card {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 0.75rem;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.category-card:hover {
+  text-decoration: none;
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 16px rgba(50, 108, 229, 0.15);
+  transform: translateY(-2px);
+}
+
+.category-card__emoji {
+  font-size: 1.8rem;
+  line-height: 1.2;
+}
+
+.category-card__body h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+  color: var(--ifm-heading-color);
+}
+
+.category-card__body p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.home-flow {
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.9rem;
+  line-height: 1.9;
+  overflow-x: auto;
+}
+
+/* ------------------------------------------------- 代码块语言名称标签
+   语言 class 同时挂在容器 (.theme-code-block, 形如
+   "language-hcl codeBlockContainer_Ckt0 theme-code-block") 与 pre.prism-code 上;
+   容器右上角是复制按钮 → 语言徽标放在其左侧 (right: 3.4rem)。
+
+   ⚠️ 必须给容器加 position: relative:
+   Docusaurus 只在【内层】.codeBlockContent 上设了 position:relative (复制按钮的
+   定位基准), 而 .theme-code-block / .codeBlockContainer 都是 static, 且其祖先
+   (.theme-doc-markdown / .container / .row / .col / .docItemContainer) 也全都没有
+   position —— 不加这一行, 徽标的 ::after 会以初始包含块 (文档原点) 为基准,
+   导致所有代码块的徽标全部堆叠在页面顶部、并压住导航栏。
+
+   仅对下方【已枚举】的语言显示徽标。裸围栏 (38 处) 会被 Docusaurus 自动标成
+   language-text, 因此枚举里特意不含 text —— 原因见下方注释。 */
+.theme-code-block[class*='language-'] {
+  position: relative; /* ← 徽标 ::after 的定位基准, 勿删 */
+  --code-lang-badge-opacity: 0.55;
+}
+
+.theme-code-block[class*='language-']::after {
+  position: absolute;
+  top: 9px;
+  right: 3.4rem;
+  z-index: 2;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ifm-color-emphasis-700);
+  opacity: var(--code-lang-badge-opacity);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .theme-code-block[class*='language-']::after {
+  color: var(--ifm-color-emphasis-400);
+}
+
+.theme-code-block[class~='language-bash']::after { content: 'bash'; }
+.theme-code-block[class~='language-shell']::after { content: 'shell'; }
+.theme-code-block[class~='language-yaml']::after { content: 'yaml'; }
+.theme-code-block[class~='language-yml']::after { content: 'yaml'; }
+.theme-code-block[class~='language-hcl']::after { content: 'hcl'; }
+.theme-code-block[class~='language-json']::after { content: 'json'; }
+.theme-code-block[class~='language-python']::after { content: 'python'; }
+/* ⚠️ 特意【不】给 language-text 加徽标:
+   Docusaurus 会把「裸围栏」(``` 后不带语言) 也标记成 language-text,
+   与显式 ```text 的 class 完全相同, CSS 无法区分。而裸围栏有 38 处、
+   显式 ```text 仅 1 处 —— 为满足"裸围栏不显示标签, 避免噪音"的要求,
+   这里一律不显示 text 徽标。 */
+.theme-code-block[class~='language-powershell']::after { content: 'powershell'; }
+.theme-code-block[class~='language-groovy']::after { content: 'groovy'; }
+.theme-code-block[class~='language-dockerfile']::after { content: 'dockerfile'; }
+.theme-code-block[class~='language-docker']::after { content: 'dockerfile'; }
+.theme-code-block[class~='language-promql']::after { content: 'promql'; }
+.theme-code-block[class~='language-logql']::after { content: 'logql'; }
+.theme-code-block[class~='language-toml']::after { content: 'toml'; }
+.theme-code-block[class~='language-ini']::after { content: 'ini'; }
+.theme-code-block[class~='language-diff']::after { content: 'diff'; }
+.theme-code-block[class~='language-js']::after { content: 'js'; }
+.theme-code-block[class~='language-jsx']::after { content: 'jsx'; }
+.theme-code-block[class~='language-mdx']::after { content: 'mdx'; }
+
+/* ------------------------------------------------- 右下角悬浮按钮组
+   ▲ 返回顶部 (滚动后浮现) + 🔍 悬浮搜索入口 */
+
+/* 搜索面板遮罩: 点击任意空白处关闭 (ESC 亦可) */
+.floating-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.28);
+  animation: floating-mask-in 0.15s ease-out;
+}
+
+@keyframes floating-mask-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.floating-widgets {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 500; /* 高于遮罩层 (400), 保证面板与按钮在遮罩之上可交互 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.floating-btn {
+  width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-color-emphasis-700);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.floating-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.floating-btn:hover {
+  transform: translateY(-2px);
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 6px 18px rgba(50, 108, 229, 0.25);
+}
+
+.floating-btn--active {
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+/* 悬浮搜索面板: 按钮上方弹出, 复用离线中文搜索的 SearchBar */
+.floating-search {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 5.5rem;
+  width: min(27rem, calc(100vw - 2.5rem));
+  padding: 0.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+}
+
+.floating-search .navbar__search {
+  width: 100%;
+}
+
+.floating-search input {
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .floating-widgets {
+    right: 0.9rem;
+    bottom: 0.9rem;
+  }
+
+  .floating-search {
+    right: 0.9rem;
+    bottom: 4.9rem;
+  }
+}
+
+/* ------------------------------------------------- 右侧目录 (TOC) 层级缩进
+   支持 1–5 级标题, 层级由 docusaurus.config.js 的 themeConfig.tableOfContents
+   (minHeadingLevel:1 / maxHeadingLevel:5) 控制。
+
+   为什么需要这些规则:
+   Docusaurus 默认只给每级 0.5rem 的 padding-left, 而且每一层的 <li> 还带
+   0.5rem 水平 margin —— 层级一深, 缩进量就靠 margin 叠加, 视觉上很难分辨
+   "这一条是 h3 还是 h4"。这里把缩进改为「每级固定 0.75rem + 左侧引导线 +
+   逐级递减字号/不透明度」, 让 1–5 级的层次一眼可辨。 */
+
+.table-of-contents {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* 嵌套层级: 缩进 + 左侧引导线 (根 ul 有自己的 __left-border, 不在此列) */
+.table-of-contents ul {
+  padding-left: 0.75rem;
+  margin: 0.15rem 0 0.15rem 0.15rem;
+  border-left: 1px solid var(--ifm-toc-border-color);
+}
+
+/* 层级越深, 字号与不透明度逐级递减, 强化层次感 */
+.table-of-contents ul ul {
+  font-size: 0.96em;
+  opacity: 0.9;
+}
+
+.table-of-contents ul ul ul {
+  font-size: 0.96em;
+  opacity: 0.85;
+}
+
+.table-of-contents ul ul ul ul {
+  font-size: 0.96em;
+  opacity: 0.8;
+}
+
+/* 条目间距: 去掉默认的水平 margin, 避免与 ul 缩进叠加导致"越深越飘" */
+.table-of-contents li {
+  margin: 0.3rem 0;
+}
+
+.table-of-contents__link {
+  padding: 0.1rem 0;
+  line-height: 1.45;
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  text-decoration: none;
+}
+

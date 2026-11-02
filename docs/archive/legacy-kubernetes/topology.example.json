@@ -1,0 +1,85 @@
+{
+  "_comment": "terraform.py --spec 的拓扑示例: 3 控制面 HA + 4 worker + 1 registry, 固定 IP 与逐台规格。适合精确控制 IP / 混合规格的场景。",
+  "virtual_machines": [
+    {
+      "role": "control-plane",
+      "vm_name": "k8s01-master01[222.201]-20260912",
+      "fqdn": "test-cjl-k8s01-master-01",
+      "ip": "172.16.222.201/24",
+      "cpu": 4,
+      "memory": 8192,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 50, "unit_number": 1 }]
+    },
+    {
+      "role": "control-plane",
+      "vm_name": "k8s01-master02[222.202]-20260912",
+      "fqdn": "test-cjl-k8s01-master-02",
+      "ip": "172.16.222.202/24",
+      "cpu": 4,
+      "memory": 8192,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 50, "unit_number": 1 }]
+    },
+    {
+      "role": "control-plane",
+      "vm_name": "k8s01-master03[222.203]-20260912",
+      "fqdn": "test-cjl-k8s01-master-03",
+      "ip": "172.16.222.203/24",
+      "cpu": 4,
+      "memory": 8192,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 50, "unit_number": 1 }]
+    },
+    {
+      "role": "worker",
+      "vm_name": "k8s01-worker01[222.204]-20260912",
+      "fqdn": "test-cjl-k8s01-worker-01",
+      "ip": "172.16.222.204/24",
+      "cpu": 8,
+      "memory": 16384,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 200, "unit_number": 1 }]
+    },
+    {
+      "role": "worker",
+      "vm_name": "k8s01-worker02[222.205]-20260912",
+      "fqdn": "test-cjl-k8s01-worker-02",
+      "ip": "172.16.222.205/24",
+      "cpu": 8,
+      "memory": 16384,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 200, "unit_number": 1 }]
+    },
+    {
+      "role": "worker",
+      "vm_name": "k8s01-worker03[222.206]-20260912",
+      "fqdn": "test-cjl-k8s01-worker-03",
+      "ip": "172.16.222.206/24",
+      "cpu": 4,
+      "memory": 8192,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 100, "unit_number": 1 }]
+    },
+    {
+      "role": "worker",
+      "vm_name": "k8s01-worker04[222.208]-20260912",
+      "fqdn": "test-cjl-k8s01-worker-04",
+      "ip": "172.16.222.208/24",
+      "cpu": 4,
+      "memory": 8192,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 100, "unit_number": 1 }]
+    },
+    {
+      "role": "registry",
+      "vm_name": "k8s01-harbor01[222.207]-20260912",
+      "fqdn": "test-cjl-k8s01-harbor-01",
+      "ip": "172.16.222.207/24",
+      "cpu": 4,
+      "memory": 4096,
+      "disk_size": 40,
+      "addl_disks": [{ "label": "disk1", "size": 500, "unit_number": 1 }]
+    }
+  ]
+}

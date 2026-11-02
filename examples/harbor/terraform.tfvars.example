@@ -1,0 +1,42 @@
+# =============================================================================
+# examples/harbor/terraform.tfvars.example
+# 用法: cp terraform.tfvars.example terraform.tfvars 后填写真实值
+#       (terraform.tfvars 已加入 .gitignore)
+# =============================================================================
+
+# --- vSphere 连接 ---
+vsphere_user       = "administrator@example.local"
+vsphere_password   = "CHANGE_ME"
+vsphere_server     = "vcenter.example.local"
+vsphere_datacenter = "Datacenter"
+vsphere_host       = "esxi01.example.local"
+vsphere_datastore  = "datastore1"
+vsphere_network    = "VM Network"
+vm_template_name   = "ubuntu-noble-24.04-cloudimg"
+
+# --- VM 定义 (命名规范与 K8s 节点一致) ---
+vm_name   = "k8s01-harbor01[222.207]-20260907"
+hostname  = "test-cjl-harbor-registry-01"
+cpu       = 4
+memory    = 4096
+disk      = 40
+data_disk = 200
+
+# --- 网络 (固定 IP) ---
+ip          = "172.16.222.207"
+prefix      = 24
+gateway     = "172.16.222.254"
+nameservers = ["223.5.5.5"]
+interface   = "ens192"
+
+# --- 系统与 Harbor ---
+vm_user             = "appuser"
+vm_group            = "appowner"
+vm_timezone         = "Asia/Shanghai"
+ssh_authorized_keys = ["ssh-ed25519 AAAA...REPLACE_WITH_YOUR_KEY"]
+
+# cn 网络环境:
+apt_mirror    = "https://mirrors.aliyun.com/ubuntu/"
+apt_suite     = "noble"
+harbor_domain = "harbor.example.local"
+data_volume   = "/var/lib/harbor"

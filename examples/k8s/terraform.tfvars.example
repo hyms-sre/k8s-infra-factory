@@ -1,0 +1,21 @@
+# =============================================================================
+# vSphere 环境凭据模板
+#
+# 用法:
+#   cp examples/k8s/terraform.tfvars.example terraform/vsphere/terraform.tfvars
+#   然后填入真实值 (terraform.tfvars 已加入 .gitignore, 禁止提交)
+#
+# 也可用环境变量注入密码 (优先推荐):
+#   export TF_VAR_vsphere_password='...'
+# =============================================================================
+
+vsphere_user       = "administrator@example.local"
+vsphere_password   = "CHANGE_ME"
+vsphere_server     = "vcenter.example.local"     # vCenter 地址 (IP 或域名)
+vsphere_datacenter = "Datacenter"
+vsphere_host       = "esxi01.example.local"      # 独立 ESXi 主机 (无集群环境)
+vsphere_datastore  = "datastore1"
+vsphere_network    = "VM Network"
+
+# Ubuntu 24.04 Cloud Image 模板名 (需已安装 cloud-init >= 21.3, 制作见 docs/12-云平台/01-vSphere.md)
+vm_template_name = "ubuntu-noble-24.04-cloudimg"

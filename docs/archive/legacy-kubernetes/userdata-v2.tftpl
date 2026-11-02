@@ -1,0 +1,281 @@
+#cloud-config
+# =============================================================================
+# userdata-v2.tftpl — 版本感知 / 按角色与特性裁剪的 cloud-init 模板
+#
+# 条件参数写法 (Terraform 模板指令; 注释里用 %%{ 转义展示, 实际指令为单百分号):
+#   %%{ if nerdctl } ... %%{ endif }           按开关决定是否执行
+#   %%{ for reg, proj in harbor_upstreams }    按镜像仓库上游列表展开
+#
+# 与 userdata.tftpl 的差异:
+#   1. K8s 版本由 Terraform 传入 (k8s_version / k8s_apt_repo / k8s_pause_image)
+#   2. containerd 的 registry config_path 使用【单一路径】——
+#      containerd 2.2.1 的 CRI 插件无法解析 "a:b" 多路径值, 会静默忽略整个
+#      certs.d, 导致 crictl 直连上游超时 (本项目实测踩坑, 详见 docs/09)
+#   3. 镜像仓库 (Harbor) 配置按 harbor_upstreams 动态生成 certs.d
+#   4. 按 cni_plugin 写入集群 CNI 选择 (供阶段脚本读取)
+#   5. 写入 GZD Cloud 欢迎信息 (/etc/issue.d + /etc/motd + 动态 motd)
+#   6. 可选密码登录 (默认关闭, 仅密钥)
+#
+# 说明: nerdctl / helm 的二进制走【离线包】分发 (scripts/39-client-tools.sh
+#       从 files/ 推送), 本模板只负责其依赖与补全配置, 避免首启时联网下载失败。
+#
+# 用法: tfvars 中设置 userdata_file = "examples/kubernetes/userdata-v2.tftpl"
+# =============================================================================
+
+users:
+  - default
+  - name: ${user}
+    primary_group: ${group}
+    groups: sudo, users, admin
+    lock_passwd: ${enable_password_auth && vm_password != "" ? "false" : "true"}
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+%{ for key in ssh_authorized_keys ~}
+      - ${key}
+%{ endfor ~}
+
+ssh_pwauth: ${enable_password_auth && vm_password != "" ? "yes" : "no"}
+%{ if enable_password_auth && vm_password != "" }
+chpasswd:
+  expire: false
+  users:
+    - name: ${user}
+      password: ${vm_password}
+      type: text
+%{ endif }
+hostname: ${fqdn}
+timezone: ${timezone}
+manage_etc_hosts: true
+package_update: true
+package_upgrade: true
+
+%{ if role == "control-plane" || role == "worker" }
+# Longhorn 数据盘 (master/worker 的第二块盘)
+device_aliases:
+  ephemeral0: /dev/sdb
+disk_setup:
+  ephemeral0:
+    table_type: gpt
+    layout: true
+    overwrite: true
+fs_setup:
+  - label: ephemeral0
+    filesystem: ext4
+    device: ephemeral0.1
+mounts:
+  - [ ephemeral0.1, /var/lib/longhorn, ext4, "defaults,nofail", 0, 0 ]
+%{ endif }
+
+write_files:
+  # ---------------------------------------------------------------- 内核与网络
+  - path: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+  - path: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables=1
+      net.bridge.bridge-nf-call-ip6tables=1
+      net.ipv4.ip_forward=1
+      fs.inotify.max_user_instances=1024
+      fs.inotify.max_user_watches=1048576
+      vm.max_map_count=262144
+
+  # -------------------------------------------------- 集群元信息 (供后续脚本读取)
+  - path: /etc/gzd-cluster.conf
+    content: |
+      # 由 cloud-init 写入, 供 /opt/iac/scripts 下的阶段脚本读取
+      CLUSTER_FQDN=${fqdn}
+      NODE_ROLE=${role}
+      K8S_VERSION=${k8s_version}
+      K8S_APT_REPO=${k8s_apt_repo}
+      K8S_PAUSE_IMAGE=${k8s_pause_image}
+      CNI_PLUGIN=${cni_plugin}
+      CNI_VERSION=${cni_version}
+      POD_CIDR=${cni_pod_cidr}
+      HARBOR_ENABLED=${harbor_enabled}
+      HARBOR_HOST=${harbor_host}
+      HARBOR_IP=${harbor_ip}
+
+%{ if motd }
+  # ------------------------------------------------- GZD Cloud 欢迎信息 (转义块)
+  # ⚠️ \n \4 \6 \t 是 agetty 转义: 主机名 / IPv4 / IPv6 / 时间。
+  #    必须是【字面反斜杠+字母】, 不能被展开成真实换行或制表符。
+  - path: /etc/issue.d/50-gzd-cloud.issue
+    content: |
+
+        GZD Cloud 定制镜像  ·  Ubuntu 24.04 LTS (noble)  ·  Kubernetes Ready
+        --------------------------------------------------------------------------
+        Hostname : \n
+        IPv4     : \4
+        IPv6     : \6
+        Time     : \t
+
+  - path: /etc/update-motd.d/00-gzd-cloud
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      [ -f /etc/gzd-banner.txt ] && cat /etc/gzd-banner.txt
+      echo
+      echo "  GZD Cloud 定制镜像 · 由 GZD Cloud 提供与维护"
+      echo
+      printf '\t主机名  : %s\n' "$(hostname)"
+      printf '\tIPv4    : %s\n' "$(hostname -I 2>/dev/null | awk '{print $1}')"
+      printf '\t角色    : ${role}\n'
+      printf '\tK8s     : ${k8s_version}\n'
+      printf '\t时间    : %s\n' "$(date '+%F %T %Z')"
+      echo
+
+  - path: /usr/local/bin/gzd-motd-setup.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # 由 banner 生成 /etc/motd (用真实制表符缩进; /etc/motd 不做转义解析)
+      set -e
+      B=/etc/gzd-banner.txt
+      [ -f "$B" ] || exit 0
+      {
+        cat "$B"
+        echo
+        echo "  GZD Cloud 定制镜像 · 由 GZD Cloud 提供与维护"
+        echo
+        printf '\t集群    : ${fqdn}\n'
+        printf '\tIPv4    : %s\n' "$(hostname -I 2>/dev/null | awk '{print $1}')"
+        printf '\t角色    : ${role}\n'
+        printf '\tK8s     : ${k8s_version}\n'
+        printf '\tCNI     : ${cni_plugin}\n'
+        echo
+        printf '\tHarbor  : https://${harbor_host}\n'
+        printf '\t文档    : /opt/iac/docs\n'
+      } > /etc/motd
+      chmod 0644 /etc/motd
+
+  - path: /etc/systemd/system/gzd-motd.service
+    content: |
+      [Unit]
+      Description=GZD Cloud MOTD regeneration
+      After=local-fs.target
+      Before=sshd.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/sh -c 'run-parts /etc/update-motd.d > /run/motd.dynamic'
+
+      [Install]
+      WantedBy=multi-user.target
+%{ endif }
+
+%{ if harbor_enabled }
+  # ---------------------------------------------------- 镜像仓库: certs.d 代理映射
+  # 每个上游 registry 一条 hosts.toml。项目名必须与 Harbor 实际项目一致,
+  # 否则 Harbor 返回 404 → containerd 回退直连上游 → 超时。
+%{ for reg, proj in harbor_upstreams }
+  - path: /etc/containerd/certs.d/${reg}/hosts.toml
+    content: |
+      server = "https://${reg}"
+
+      [host."https://${harbor_host}/v2/${proj}"]
+        capabilities = ["pull", "resolve"]
+        override_path = true
+%{ endfor }
+%{ endif }
+
+runcmd:
+  # ------------------------------------------------------------------ 基础系统
+  - [ swapoff, -a ]
+  - [ modprobe, overlay ]
+  - [ modprobe, br_netfilter ]
+  - [ sysctl, --system ]
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget jq open-iscsi vim nfs-common socat conntrack bash-completion
+  - systemctl enable --now iscsid
+  - echo '172.16.222.207 ${harbor_host} harbor' >> /etc/hosts
+
+%{ if nerdctl }
+  # -------------------------------------- nerdctl 依赖 (二进制由离线包分发)
+  - echo "[gzd] nerdctl: 安装 containerd 依赖 (nerdctl 二进制见 scripts/39-client-tools.sh)"
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y containerd
+  - systemctl enable containerd
+%{ endif }
+
+%{ if docker_ce }
+  # ------------------------------------------------------------------- docker-ce
+  - echo "[gzd] installing docker-ce from aliyun mirror"
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update -qq
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+%{ endif }
+
+  # -------------------------------------- containerd 配置 (版本无关, 但必须单路径)
+  - echo "[gzd] configuring containerd"
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y containerd
+  - mkdir -p /etc/containerd
+  - containerd config default > /etc/containerd/config.toml
+  - sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+  # ⚠️ config_path 必须单一路径, 否则 CRI 静默忽略 certs.d (见文件头注释)
+  - sed -i "s|config_path = '[^']*:[^']*'|config_path = '/etc/containerd/certs.d'|g" /etc/containerd/config.toml
+  - sed -i "s|config_path = ''|config_path = '/etc/containerd/certs.d'|g" /etc/containerd/config.toml
+  # sandbox/pause 镜像由 K8s 版本目录派生
+  - sed -i "s|sandbox_image = \"registry.k8s.io/pause[^\"]*\"|sandbox_image = \"${k8s_pause_image}\"|" /etc/containerd/config.toml
+  - sed -i "s|sandbox = .registry.k8s.io/pause.*|sandbox = '${k8s_pause_image}'|" /etc/containerd/config.toml
+  - systemctl restart containerd
+
+  # ---------------------------------------------- Kubernetes apt 源 (版本派生)
+  - echo "[gzd] installing kubernetes ${k8s_version}"
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL "${k8s_apt_repo}Release.key" | gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  - echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${k8s_apt_repo} /" > /etc/apt/sources.list.d/kubernetes.list
+  - apt-get update -qq
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y kubelet kubeadm kubectl
+  - apt-mark hold kubelet kubeadm kubectl
+  - echo 'runtime-endpoint: unix:///run/containerd/containerd.sock' > /etc/crictl.yaml
+
+%{ if helm }
+  # ------------------------------------- helm 补全 (二进制由离线包分发)
+  - echo "[gzd] helm: 二进制见 scripts/39-client-tools.sh, 此处仅预置补全"
+  - mkdir -p /etc/bash_completion.d
+%{ endif }
+
+%{ if k9s }
+  # --------------------------------------- k9s 预留 (如需启用请分发离线二进制)
+  - echo "[gzd] k9s 已启用但需离线二进制: 放入 /usr/local/bin/k9s 即可"
+%{ endif }
+
+%{ if bash_completion }
+  # -------------------------------------------------- bash 补全 (kubectl/kubeadm)
+  - echo "[gzd] configuring bash completion"
+  - kubectl completion bash | tee /etc/bash_completion.d/kubectl > /dev/null
+  - kubeadm completion bash | tee /etc/bash_completion.d/kubeadm > /dev/null
+  - chmod a+r /etc/bash_completion.d/kubectl /etc/bash_completion.d/kubeadm
+  - echo 'source /usr/share/bash-completion/bash_completion' >> /etc/bash.bashrc
+  - echo 'alias k=kubectl' >> /etc/bash.bashrc
+  - echo 'complete -o default -F __start_kubectl k' >> /etc/bash.bashrc
+%{ endif }
+
+%{ if motd }
+  # ------------------------------------------------ GZD Cloud 欢迎信息 (banner)
+  # banner 以 base64 传入, 规避 YAML block scalar 的缩进规则
+  - echo "${motd_banner_b64}" | base64 -d > /etc/gzd-banner.txt
+  - chmod 0644 /etc/gzd-banner.txt
+  - cp /etc/gzd-banner.txt /etc/issue.d/10-gzd-banner.issue
+  - /usr/local/bin/gzd-motd-setup.sh
+  - run-parts /etc/update-motd.d > /run/motd.dynamic || true
+  - systemctl daemon-reload || true
+  - systemctl enable gzd-motd.service || true
+%{ endif }
+
+%{ if role == "control-plane" || role == "worker" }
+  # ------------------------------------------------------------ 数据盘属主
+  - [ chown, -R, ${user}:${group}, /var/lib/longhorn ]
+%{ endif }
+
+  # ------------------------------------------- CNI 提示 (实际安装见阶段脚本)
+  - echo "[gzd] CNI=${cni_plugin} ${cni_version} pod_cidr=${cni_pod_cidr} — ${cni_notes}"
+
+final_message: |
+  GZD Cloud node ready: ${fqdn} (role=${role}, k8s=${k8s_version}, cni=${cni_plugin})

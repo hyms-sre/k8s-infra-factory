@@ -1,0 +1,75 @@
+# =============================================================================
+# cluster.yaml — Kubernetes 集群定义 (generate.py 的唯一输入)
+#
+# 修改后执行:  python generate.py   → 重新生成 vm.tf
+# 网络环境差异 (镜像源/Harbor) 见 live/lab/vsphere/cn/cluster/ 的 cn 变体。
+# =============================================================================
+
+cluster:
+  name: lab-k8s01            # 集群名
+  environment: lab           # 主机名第一段
+  location: hq               # 主机名第二段
+  id: k8s01                  # 主机名第三段 / vSphere 显示名前缀
+
+masters:
+  count: 3
+  cpu: 4
+  memory: 6144               # MB
+  disk: 100                  # 系统盘 GB
+  data_disk: 50              # 附加数据盘 GB (Longhorn); 0 = 不要
+  ips: []                    # 显式 IP 列表 (数量=count); 空 = 从 ip_start 顺序分配
+
+workers:
+  count: 3
+  cpu: 16
+  memory: 16384
+  disk: 200
+  data_disk: 50
+  ips: []
+
+network:
+  interface: ens192          # VM 网卡名 (VMware vmxnet3 默认)
+  cidr: 172.16.222.0/24
+  gateway: 172.16.222.254
+  dns:
+    - 172.16.222.210
+    - 223.5.5.5
+  ip_start: 172.16.222.201   # 自动分配起始 IP
+  date: "auto"               # vSphere 显示名日期段; auto=生成当天, 固定值可避免重复生成时改名
+
+kubernetes:
+  version: "1.36"            # 1.33-1.37; pause/crictl 随目录联动 (generate.py 内 K8S_CATALOG)
+  apt_repo: "https://pkgs.k8s.io/core:/stable:/v{version}/deb/"
+  pause_registry: "registry.k8s.io"
+  cni_plugin: cilium         # 仅记录; CNI 安装见 docs/02-Kubernetes/
+  pod_cidr: 10.244.0.0/16
+  service_cidr: 10.96.0.0/12
+
+os:
+  user: appuser              # VM 内运维用户 (sudo 免密)
+  group: appowner
+  timezone: Asia/Shanghai
+  apt_mirror: ""             # 空 = Ubuntu 官方源; cn: https://mirrors.aliyun.com/ubuntu/
+  apt_suite: noble
+  ntp: []
+
+ssh:
+  public_key_file: ""        # 空 = 自动探测 ~/.ssh/id_ed25519.pub → id_rsa.pub
+  enable_password_auth: false
+  vm_password: ""            # 仅 enable_password_auth: true 时生效
+
+tools:
+  helm:
+    enabled: true
+    url: "https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz"
+  nerdctl:
+    enabled: true
+    url: "https://github.com/containerd/nerdctl/releases/download/v2.0.4/nerdctl-2.0.4-linux-amd64.tar.gz"
+  bash_completion: true
+
+# Harbor 镜像仓库代理 (cn 环境启用; 项目名必须与 Harbor 实际 proxy 项目一致)
+harbor:
+  enabled: false
+  host: ""
+  ip: ""
+  upstreams: {}              # <上游 registry>: <Harbor 项目名>, 如 docker.io: dockerhub

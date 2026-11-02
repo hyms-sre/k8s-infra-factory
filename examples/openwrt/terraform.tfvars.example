@@ -1,0 +1,22 @@
+# =============================================================================
+# examples/openwrt/terraform.tfvars.example
+# 用法: cp terraform.tfvars.example terraform.tfvars 后填写真实值
+# =============================================================================
+
+vsphere_user       = "administrator@example.local"
+vsphere_password   = "CHANGE_ME"
+vsphere_server     = "vcenter.example.local"
+vsphere_datacenter = "Datacenter"
+vsphere_host       = "esxi01.example.local"
+vsphere_datastore  = "datastore1"
+vsphere_network    = "VM Network"
+
+# OpenWrt 模板 (由官方 squashfs-combined img 制作, 见 README.md 第 1 节)
+vm_template_name = "openwrt-24.10.2-x86-64"
+
+vm_name = "k8s01-openwrt01[222.210]-20260907"
+cpu     = 2
+memory  = 4096
+disk    = 40
+
+ip = "172.16.222.210"

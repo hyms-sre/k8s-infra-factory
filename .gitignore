@@ -1,0 +1,51 @@
+# =============================================================================
+# 敏感信息与运行期产物不入 Git (规则详解见 docs/99-参考/01-文件说明.md)
+# =============================================================================
+
+# --- 本地维护者文件 (仅供本地 AI Agent / Maintainer) ---
+AGENT.md
+
+# --- Terraform 凭据与状态 ---
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+crash.*.log
+
+# --- 凭据类 ---
+.env
+.env.*
+*.pem
+*.key
+secrets/secrets.env
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- 大体积/可再生工件 (scripts/<平台>/prefetch-files 重新下载) ---
+downloads/
+*.vmdk
+*.tgz
+*.tar
+*.tar.gz
+*.ipk
+*.exe
+
+# --- 日志与临时产物 ---
+*.log
+*.out
+plan.txt
+destroy.txt
+
+# --- 知识库站点 (website/, Docusaurus) ---
+node_modules/
+website/build/
+website/.docusaurus/
+
+# --- 工具目录 ---
+.workbuddy-ai/
+.zcode/
